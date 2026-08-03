@@ -152,32 +152,41 @@
   .chips{
     display:flex;
     align-items:center;
-    gap: 10px;
-    margin-top: 16px;
+    gap: 20px;
+    margin-top: 20px;
     flex-wrap: wrap;
   }
-  .chip{
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--text-dim);
-    background: var(--panel);
-    border: 1px solid var(--line);
-    padding: 7px 12px;
-    border-radius: 999px;
-    cursor: pointer;
+  .select-group{
     display:flex;
     align-items:center;
-    gap: 6px;
-    user-select: none;
+    gap: 10px;
+  }
+  .select-group label{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .select-group select{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 32px 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C97AE' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
     transition: border-color 0.15s;
   }
-  .chip:hover{ border-color: var(--line-strong); }
-  .chip.active{
-    color: var(--amber);
-    border-color: var(--amber);
-    background: var(--amber-dim);
-  }
-  .chip input{ display:none; }
+  .select-group select:hover{ border-color: var(--line-strong); }
+  .select-group select:focus{ outline: none; border-color: var(--amber); }
+  .select-group select option{ background: var(--panel); color: var(--text); }
 
   .status-row{
     margin-top: 22px;
@@ -248,7 +257,7 @@
     white-space: nowrap;
   }
   .badge.india{ background: rgba(232,118,61,0.16); color: #F0A377; }
-  .badge.world{ background: var(--teal-dim); color: var(--teal); }
+  .badge.exp{ background: var(--teal-dim); color: var(--teal); }
   .badge.loc{ background: var(--panel-2); color: var(--text-dim); }
   .badge.source{ background: var(--panel-2); color: var(--text-faint); border: 1px solid var(--line); }
   .badge.date{ background: transparent; color: var(--text-faint); padding-left: 0; }
@@ -297,7 +306,7 @@
   <div class="top">
     <div class="brand">
       <h1>signal<span class="dot">.</span></h1>
-      <span class="tag">remote roles, scanned live, open to India</span>
+      <span class="tag">India-based remote roles, scanned live</span>
     </div>
     <div class="sources" id="sourceStatus">
       <div class="src-item"><span class="src-dot" data-src="remotive"></span>remotive</div>
@@ -314,12 +323,27 @@
   </div>
 
   <div class="chips">
-    <label class="chip active" id="chipIndiaOpen">
-      <input type="checkbox" checked>only show India + worldwide-remote roles
-    </label>
-    <label class="chip" id="chipFresh">
-      <input type="checkbox">posted in last 14 days
-    </label>
+    <div class="select-group">
+      <label for="expFilter">Experience</label>
+      <select id="expFilter">
+        <option value="all">All levels</option>
+        <option value="entry">Entry level</option>
+        <option value="mid">Mid level</option>
+        <option value="senior">Senior</option>
+        <option value="lead">Lead / management</option>
+      </select>
+    </div>
+    <div class="select-group">
+      <label for="postedFilter">Posted</label>
+      <select id="postedFilter">
+        <option value="all">Anytime</option>
+        <option value="1">Last 24 hours</option>
+        <option value="3">Last 3 days</option>
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+    </div>
   </div>
 
   <div class="status-row">
@@ -335,7 +359,7 @@
   </div>
 
   <div class="footnote">
-    This scans three independent, free, public job APIs (Remotive, Arbeitnow, Jobicy) directly from your browser — not a LinkedIn-only feed. Location filtering is heuristic: a role is tagged "India" or "worldwide" based on what the listing itself states, so always confirm on the apply page. Refresh and re-scan any time; nothing is stored or emailed automatically.
+    This scans three independent, free, public job APIs (Remotive, Arbeitnow, Jobicy) directly from your browser — not a LinkedIn-only feed. Only listings whose stated location mentions India are shown; roles marked "worldwide" or "anywhere" without naming India are excluded on purpose. Experience level isn't always provided by the source, so it's inferred from the job title (e.g. "senior", "lead", "intern") when not stated directly — treat it as a rough guide, not a guarantee. Refresh and re-scan any time; nothing is stored or emailed automatically.
   </div>
 
 </div>
@@ -348,8 +372,8 @@
   const output = document.getElementById('output');
   const statusLeft = document.getElementById('statusLeft');
   const statusRight = document.getElementById('statusRight');
-  const chipIndiaOpen = document.getElementById('chipIndiaOpen');
-  const chipFresh = document.getElementById('chipFresh');
+  const expFilter = document.getElementById('expFilter');
+  const postedFilter = document.getElementById('postedFilter');
 
   let lastResults = [];
 
@@ -364,27 +388,30 @@
     ['remotive','arbeitnow','jobicy'].forEach(s => setDot(s,'pending'));
   }
 
-  function toggleChip(chip){
-    chip.addEventListener('click', () => {
-      chip.classList.toggle('active');
-      const box = chip.querySelector('input');
-      box.checked = chip.classList.contains('active');
-      render();
-    });
-  }
-  toggleChip(chipIndiaOpen);
-  toggleChip(chipFresh);
+  expFilter.addEventListener('change', render);
+  postedFilter.addEventListener('change', render);
 
-  function geoTag(locationRaw){
-    const loc = (locationRaw || '').toLowerCase().trim();
-    if(!loc) return 'world';
-    if(loc.includes('india')) return 'india';
-    const worldwideHints = ['anywhere','worldwide','global','world','remote (any','any location','apac','asia','emea and apac'];
-    if(worldwideHints.some(h => loc.includes(h))) return 'world';
-    const restrictiveHints = ['usa only','us only','united states only','uk only','canada only','eu only','europe only','emea only','latam only','australia only','us-based','uk-based','europe-based'];
-    if(restrictiveHints.some(h => loc.includes(h))) return 'restricted';
-    return 'unclear';
+  function isIndia(locationRaw){
+    const loc = (locationRaw || '').toLowerCase();
+    return loc.includes('india');
   }
+
+  function inferExperience(title, levelField){
+    const lvl = (levelField || '').toLowerCase();
+    if(lvl){
+      if(lvl.includes('intern') || lvl.includes('entry') || lvl.includes('junior')) return 'entry';
+      if(lvl.includes('senior')) return 'senior';
+      if(lvl.includes('lead') || lvl.includes('manager') || lvl.includes('director') || lvl.includes('head') || lvl.includes('vp') || lvl.includes('executive')) return 'lead';
+      if(lvl.includes('mid')) return 'mid';
+    }
+    const t = (title || '').toLowerCase();
+    if(/\b(intern|internship|entry.level|junior|graduate|fresher)\b/.test(t)) return 'entry';
+    if(/\b(lead|principal|staff|head of|director|vp|chief|manager)\b/.test(t)) return 'lead';
+    if(/\b(senior|sr\.?|iii|expert)\b/.test(t)) return 'senior';
+    return 'mid';
+  }
+
+  const expLabels = { entry: 'Entry level', mid: 'Mid level', senior: 'Senior', lead: 'Lead / management' };
 
   function daysAgo(dateStr){
     if(!dateStr) return null;
@@ -414,6 +441,7 @@
       location: j.candidate_required_location,
       url: j.url,
       posted: j.publication_date,
+      levelRaw: '',
       source: 'Remotive'
     }));
   }
@@ -435,15 +463,16 @@
         id: 'arb-' + j.slug,
         title: j.title,
         company: j.company_name,
-        location: j.location || 'worldwide',
+        location: j.location || '',
         url: j.url,
         posted: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,
+        levelRaw: '',
         source: 'Arbeitnow'
       }));
   }
 
   async function fetchJobicy(query){
-    const url = 'https://jobicy.com/api/v2/remote-jobs?count=50&tag=' + encodeURIComponent(query);
+    const url = 'https://jobicy.com/api/v2/remote-jobs?count=50&geo=india&tag=' + encodeURIComponent(query);
     const res = await fetch(url);
     if(!res.ok) throw new Error('jobicy failed');
     const data = await res.json();
@@ -454,6 +483,7 @@
       location: j.jobGeo,
       url: j.url,
       posted: j.pubDate,
+      levelRaw: j.jobLevel || '',
       source: 'Jobicy'
     }));
   }
@@ -491,7 +521,8 @@
 
     let all = [];
     settled.forEach(r => { if(r.status === 'fulfilled') all = all.concat(r.value); });
-    all = dedupe(all);
+    all = dedupe(all).filter(j => isIndia(j.location));
+    all = all.map(j => ({...j, exp: inferExperience(j.title, j.levelRaw)}));
 
     if(errors.length){
       const dbg = document.createElement('div');
@@ -509,35 +540,34 @@
     scanBtn.disabled = false;
     scanBtn.textContent = 'Scan';
     scanline.classList.remove('active');
-    statusLeft.textContent = all.length + ' roles found for "' + query + '"';
+    statusLeft.textContent = all.length + ' India-based roles found for "' + query + '"';
     statusRight.textContent = 'last scanned ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
 
     render();
   }
 
   function render(){
-    const onlyIndiaOpen = chipIndiaOpen.classList.contains('active');
-    const onlyFresh = chipFresh.classList.contains('active');
+    const expVal = expFilter.value;
+    const postedVal = postedFilter.value;
 
     let jobs = lastResults.slice();
 
-    jobs = jobs.map(j => ({...j, geo: geoTag(j.location)}));
-
-    if(onlyIndiaOpen){
-      jobs = jobs.filter(j => j.geo === 'india' || j.geo === 'world' || j.geo === 'unclear');
+    if(expVal !== 'all'){
+      jobs = jobs.filter(j => j.exp === expVal);
     }
-    if(onlyFresh){
+    if(postedVal !== 'all'){
+      const maxDays = parseInt(postedVal, 10);
       jobs = jobs.filter(j => {
         const d = daysAgo(j.posted);
-        return d === null || d <= 14;
+        return d === null || d <= maxDays;
       });
     }
 
     if(jobs.length === 0){
       if(lastResults.length === 0){
-        output.innerHTML = '<div class="empty"><i>no results yet</i>try a broader or different role, or clear filters</div>';
+        output.innerHTML = '<div class="empty"><i>no India-based roles found</i>try a broader role title — this site only shows listings explicitly marked for India</div>';
       } else {
-        output.innerHTML = '<div class="empty"><i>filters hid everything</i>try turning off a filter above</div>';
+        output.innerHTML = '<div class="empty"><i>filters hid everything</i>try widening experience or posted-date filters above</div>';
       }
       return;
     }
@@ -550,20 +580,15 @@
   }
 
   function cardHTML(j){
-    let geoBadge = '';
-    if(j.geo === 'india') geoBadge = '<span class="badge india">India</span>';
-    else if(j.geo === 'world') geoBadge = '<span class="badge world">Worldwide</span>';
-    else if(j.geo === 'restricted') geoBadge = '<span class="badge loc">' + escapeHTML(j.location) + '</span>';
-    else geoBadge = '<span class="badge loc">' + escapeHTML(j.location || 'location unclear') + '</span>';
-
     const dateStr = fmtDate(j.posted);
 
     return '<div class="card">' +
       '<div class="card-main">' +
         '<p class="card-title">' + escapeHTML(j.title) + '</p>' +
-        '<p class="card-company">' + escapeHTML(j.company || 'company not listed') + '</p>' +
+        '<p class="card-company">' + escapeHTML(j.company || 'company not listed') + ' · ' + escapeHTML(j.location || 'India') + '</p>' +
         '<div class="card-meta">' +
-          geoBadge +
+          '<span class="badge india">India</span>' +
+          '<span class="badge exp">' + expLabels[j.exp] + '</span>' +
           '<span class="badge source">' + j.source + '</span>' +
           (dateStr ? '<span class="badge date">' + dateStr + '</span>' : '') +
         '</div>' +
