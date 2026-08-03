@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal — remote jobs for India</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0E1726;
+    --panel: #16223A;
+    --panel-2: #1C2A46;
+    --line: rgba(255,255,255,0.08);
+    --line-strong: rgba(255,255,255,0.16);
+    --text: #EAEEF6;
+    --text-dim: #8C97AE;
+    --text-faint: #5C6A85;
+    --amber: #E8A33D;
+    --amber-dim: rgba(232,163,61,0.14);
+    --teal: #45BFAE;
+    --teal-dim: rgba(69,191,174,0.14);
+    --saffron: #E8763D;
+    --danger: #E15A5A;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  .top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap: 10px;
+  }
+  .brand h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .brand .dot{
+    color: var(--amber);
+  }
+  .brand .tag{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+  }
+  .sources{
+    display:flex;
+    gap: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .src-item{ display:flex; align-items:center; gap:6px; }
+  .src-dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--text-faint);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .src-dot.ok{ background: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
+  .src-dot.fail{ background: var(--danger); }
+  .src-dot.pending{
+    background: var(--amber);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity: 1; }
+    50%{ opacity: 0.35; }
+  }
+
+  .scanbar{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 4px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .scanbar .prompt{
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--amber);
+    font-size: 15px;
+    padding-left: 14px;
+    user-select: none;
+  }
+  .scanbar input{
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    padding: 14px 4px;
+  }
+  .scanbar input::placeholder{ color: var(--text-faint); }
+  .scanbar button{
+    background: var(--amber);
+    color: #2A1B04;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 22px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .scanbar button:hover{ background: #F0B255; }
+  .scanbar button:active{ transform: scale(0.97); }
+  .scanbar button:disabled{ background: var(--text-faint); cursor: default; }
+  .scanline{
+    position: absolute;
+    left:0; right:0; bottom:0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    transform: translateX(-100%);
+  }
+  .scanline.active{
+    animation: sweep 1.1s linear infinite;
+  }
+  @keyframes sweep{
+    to{ transform: translateX(100%); }
+  }
+
+  .chips{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .chip{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    user-select: none;
+    transition: border-color 0.15s;
+  }
+  .chip:hover{ border-color: var(--line-strong); }
+  .chip.active{
+    color: var(--amber);
+    border-color: var(--amber);
+    background: var(--amber-dim);
+  }
+  .chip input{ display:none; }
+
+  .status-row{
+    margin-top: 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+    min-height: 18px;
+    display:flex;
+    justify-content: space-between;
+  }
+
+  .empty{
+    margin-top: 60px;
+    text-align: center;
+    color: var(--text-faint);
+  }
+  .empty i{
+    font-size: 13px;
+    display:block;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .results{
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display:flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .card:hover{
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+  }
+  .card-main{ flex:1; min-width: 0; }
+  .card-title{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  .card-company{
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0 0 10px;
+  }
+  .card-meta{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items:center;
+  }
+  .badge{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.india{ background: rgba(232,118,61,0.16); color: #F0A377; }
+  .badge.world{ background: var(--teal-dim); color: var(--teal); }
+  .badge.loc{ background: var(--panel-2); color: var(--text-dim); }
+  .badge.source{ background: var(--panel-2); color: var(--text-faint); border: 1px solid var(--line); }
+  .badge.date{ background: transparent; color: var(--text-faint); padding-left: 0; }
+
+  .card-side{
+    display:flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .apply{
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--bg);
+    background: var(--text);
+    padding: 8px 14px;
+    border-radius: 7px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .apply:hover{ background: var(--amber); }
+
+  .footnote{
+    margin-top: 40px;
+    font-size: 12px;
+    color: var(--text-faint);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+
+  @media (max-width: 600px){
+    .card{ flex-direction: column; }
+    .card-side{ align-items: flex-start; flex-direction: row; width: 100%; }
+    .scanbar{ flex-wrap: wrap; }
+    .scanbar .prompt{ padding-left: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand">
+      <h1>signal<span class="dot">.</span></h1>
+      <span class="tag">remote roles, scanned live, open to India</span>
+    </div>
+    <div class="sources" id="sourceStatus">
+      <div class="src-item"><span class="src-dot" data-src="remotive"></span>remotive</div>
+      <div class="src-item"><span class="src-dot" data-src="arbeitnow"></span>arbeitnow</div>
+      <div class="src-item"><span class="src-dot" data-src="jobicy"></span>jobicy</div>
+    </div>
+  </div>
+
+  <div class="scanbar">
+    <span class="prompt">&gt;</span>
+    <input id="roleInput" type="text" placeholder="scan for... e.g. product designer, backend engineer, content writer" autocomplete="off">
+    <button id="scanBtn">Scan</button>
+    <div class="scanline" id="scanline"></div>
+  </div>
+
+  <div class="chips">
+    <label class="chip active" id="chipIndiaOpen">
+      <input type="checkbox" checked>only show India + worldwide-remote roles
+    </label>
+    <label class="chip" id="chipFresh">
+      <input type="checkbox">posted in last 14 days
+    </label>
+  </div>
+
+  <div class="status-row">
+    <span id="statusLeft"></span>
+    <span id="statusRight"></span>
+  </div>
+
+  <div id="output">
+    <div class="empty">
+      <i>waiting for input</i>
+      type a role above and hit scan — pulls live from Remotive, Arbeitnow and Jobicy in one pass
+    </div>
+  </div>
+
+  <div class="footnote">
+    This scans three independent, free, public job APIs (Remotive, Arbeitnow, Jobicy) directly from your browser — not a LinkedIn-only feed. Location filtering is heuristic: a role is tagged "India" or "worldwide" based on what the listing itself states, so always confirm on the apply page. Refresh and re-scan any time; nothing is stored or emailed automatically.
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const roleInput = document.getElementById('roleInput');
+  const scanBtn = document.getElementById('scanBtn');
+  const scanline = document.getElementById('scanline');
+  const output = document.getElementById('output');
+  const statusLeft = document.getElementById('statusLeft');
+  const statusRight = document.getElementById('statusRight');
+  const chipIndiaOpen = document.getElementById('chipIndiaOpen');
+  const chipFresh = document.getElementById('chipFresh');
+
+  let lastResults = [];
+
+  function setDot(src, state){
+    const el = document.querySelector('.src-dot[data-src="'+src+'"]');
+    if(!el) return;
+    el.classList.remove('ok','fail','pending');
+    if(state) el.classList.add(state);
+  }
+
+  function resetDots(){
+    ['remotive','arbeitnow','jobicy'].forEach(s => setDot(s,'pending'));
+  }
+
+  function toggleChip(chip){
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+      const box = chip.querySelector('input');
+      box.checked = chip.classList.contains('active');
+      render();
+    });
+  }
+  toggleChip(chipIndiaOpen);
+  toggleChip(chipFresh);
+
+  function geoTag(locationRaw){
+    const loc = (locationRaw || '').toLowerCase().trim();
+    if(!loc) return 'world';
+    if(loc.includes('india')) return 'india';
+    const worldwideHints = ['anywhere','worldwide','global','world','remote (any','any location','apac','asia','emea and apac'];
+    if(worldwideHints.some(h => loc.includes(h))) return 'world';
+    const restrictiveHints = ['usa only','us only','united states only','uk only','canada only','eu only','europe only','emea only','latam only','australia only','us-based','uk-based','europe-based'];
+    if(restrictiveHints.some(h => loc.includes(h))) return 'restricted';
+    return 'unclear';
+  }
+
+  function daysAgo(dateStr){
+    if(!dateStr) return null;
+    const d = new Date(dateStr);
+    if(isNaN(d)) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+
+  function fmtDate(dateStr){
+    const d = daysAgo(dateStr);
+    if(d === null) return '';
+    if(d <= 0) return 'today';
+    if(d === 1) return '1 day ago';
+    if(d < 30) return d + ' days ago';
+    return new Date(dateStr).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'});
+  }
+
+  async function fetchRemotive(query){
+    const url = 'https://remotive.com/api/remote-jobs?search=' + encodeURIComponent(query);
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('remotive failed');
+    const data = await res.json();
+    return (data.jobs || []).map(j => ({
+      id: 'rmv-' + j.id,
+      title: j.title,
+      company: j.company_name,
+      location: j.candidate_required_location,
+      url: j.url,
+      posted: j.publication_date,
+      source: 'Remotive'
+    }));
+  }
+
+  async function fetchArbeitnow(query){
+    const url = 'https://www.arbeitnow.com/api/job-board-api';
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('arbeitnow failed');
+    const data = await res.json();
+    const q = query.toLowerCase();
+    const terms = q.split(/\s+/).filter(Boolean);
+    return (data.data || [])
+      .filter(j => j.remote)
+      .filter(j => {
+        const hay = ((j.title||'') + ' ' + (j.tags||[]).join(' ')).toLowerCase();
+        return terms.length === 0 || terms.some(t => hay.includes(t));
+      })
+      .map(j => ({
+        id: 'arb-' + j.slug,
+        title: j.title,
+        company: j.company_name,
+        location: j.location || 'worldwide',
+        url: j.url,
+        posted: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,
+        source: 'Arbeitnow'
+      }));
+  }
+
+  async function fetchJobicy(query){
+    const url = 'https://jobicy.com/api/v2/remote-jobs?count=50&tag=' + encodeURIComponent(query);
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('jobicy failed');
+    const data = await res.json();
+    return (data.jobs || []).map(j => ({
+      id: 'jbc-' + j.id,
+      title: j.jobTitle,
+      company: j.companyName,
+      location: j.jobGeo,
+      url: j.url,
+      posted: j.pubDate,
+      source: 'Jobicy'
+    }));
+  }
+
+  function dedupe(jobs){
+    const seen = new Set();
+    return jobs.filter(j => {
+      const key = (j.title||'').toLowerCase().trim() + '|' + (j.company||'').toLowerCase().trim();
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  async function scan(){
+    const query = roleInput.value.trim();
+    if(!query){
+      roleInput.focus();
+      return;
+    }
+    scanBtn.disabled = true;
+    scanBtn.textContent = 'Scanning';
+    scanline.classList.add('active');
+    resetDots();
+    statusLeft.textContent = 'contacting sources...';
+    statusRight.textContent = '';
+    output.innerHTML = '';
+
+    const errors = [];
+    const settled = await Promise.allSettled([
+      fetchRemotive(query).then(r => { setDot('remotive','ok'); return r; }).catch(e => { setDot('remotive','fail'); errors.push('Remotive: ' + e.message); return []; }),
+      fetchArbeitnow(query).then(r => { setDot('arbeitnow','ok'); return r; }).catch(e => { setDot('arbeitnow','fail'); errors.push('Arbeitnow: ' + e.message); return []; }),
+      fetchJobicy(query).then(r => { setDot('jobicy','ok'); return r; }).catch(e => { setDot('jobicy','fail'); errors.push('Jobicy: ' + e.message); return []; })
+    ]);
+
+    let all = [];
+    settled.forEach(r => { if(r.status === 'fulfilled') all = all.concat(r.value); });
+    all = dedupe(all);
+
+    if(errors.length){
+      const dbg = document.createElement('div');
+      dbg.style.cssText = 'margin-top:10px;font-family:IBM Plex Mono,monospace;font-size:11px;color:#E15A5A;background:rgba(225,90,90,0.08);border:1px solid rgba(225,90,90,0.3);border-radius:8px;padding:10px 12px;';
+      dbg.innerHTML = 'source errors — likely blocked by preview sandbox, open the downloaded file directly in a browser tab instead:<br>' + errors.map(escapeHTML).join('<br>');
+      output.appendChild(dbg);
+    }
+    all.sort((a,b) => {
+      const da = a.posted ? new Date(a.posted).getTime() : 0;
+      const db = b.posted ? new Date(b.posted).getTime() : 0;
+      return db - da;
+    });
+
+    lastResults = all;
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan';
+    scanline.classList.remove('active');
+    statusLeft.textContent = all.length + ' roles found for "' + query + '"';
+    statusRight.textContent = 'last scanned ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+    render();
+  }
+
+  function render(){
+    const onlyIndiaOpen = chipIndiaOpen.classList.contains('active');
+    const onlyFresh = chipFresh.classList.contains('active');
+
+    let jobs = lastResults.slice();
+
+    jobs = jobs.map(j => ({...j, geo: geoTag(j.location)}));
+
+    if(onlyIndiaOpen){
+      jobs = jobs.filter(j => j.geo === 'india' || j.geo === 'world' || j.geo === 'unclear');
+    }
+    if(onlyFresh){
+      jobs = jobs.filter(j => {
+        const d = daysAgo(j.posted);
+        return d === null || d <= 14;
+      });
+    }
+
+    if(jobs.length === 0){
+      if(lastResults.length === 0){
+        output.innerHTML = '<div class="empty"><i>no results yet</i>try a broader or different role, or clear filters</div>';
+      } else {
+        output.innerHTML = '<div class="empty"><i>filters hid everything</i>try turning off a filter above</div>';
+      }
+      return;
+    }
+
+    output.innerHTML = '<div class="results">' + jobs.map(cardHTML).join('') + '</div>';
+  }
+
+  function escapeHTML(s){
+    return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function cardHTML(j){
+    let geoBadge = '';
+    if(j.geo === 'india') geoBadge = '<span class="badge india">India</span>';
+    else if(j.geo === 'world') geoBadge = '<span class="badge world">Worldwide</span>';
+    else if(j.geo === 'restricted') geoBadge = '<span class="badge loc">' + escapeHTML(j.location) + '</span>';
+    else geoBadge = '<span class="badge loc">' + escapeHTML(j.location || 'location unclear') + '</span>';
+
+    const dateStr = fmtDate(j.posted);
+
+    return '<div class="card">' +
+      '<div class="card-main">' +
+        '<p class="card-title">' + escapeHTML(j.title) + '</p>' +
+        '<p class="card-company">' + escapeHTML(j.company || 'company not listed') + '</p>' +
+        '<div class="card-meta">' +
+          geoBadge +
+          '<span class="badge source">' + j.source + '</span>' +
+          (dateStr ? '<span class="badge date">' + dateStr + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="card-side">' +
+        '<a class="apply" href="' + j.url + '" target="_blank" rel="noopener">View role</a>' +
+      '</div>' +
+    '</div>';
+  }
+
+  scanBtn.addEventListener('click', scan);
+  roleInput.addEventListener('keydown', e => { if(e.key === 'Enter') scan(); });
+  resetDots();
+})();
+</script>
+
+</body>
+</html>
